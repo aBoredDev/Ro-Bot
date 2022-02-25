@@ -14,7 +14,6 @@ logging.basicConfig(format=FORMAT)
 logger = logging.getLogger('RoCode')
 logger.setLevel(logging.INFO)
 
-
 class Rocode(commands.Cog):
 
     def __init__(self, bot):
