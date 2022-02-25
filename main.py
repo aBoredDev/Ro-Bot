@@ -13,14 +13,16 @@ logger.setLevel(logging.INFO)
 
 configFile = "config.json"
 if os.path.isfile(configFile):
-    file = open(configFile)
-    conf = json.load(file)
-    discord_token = conf["discord_bot_token"]
-    description = conf['description']
-    rocode_minute = conf['rocode_minute']
-    rocode_hour = conf['rocode_hour']
-    epoch = conf['epoch']
-    timezone = conf['timezone']
+    with open(configFile) as file:
+        conf = json.load(file)
+        discord_token = conf["discord_bot_token"]
+        description = conf['description']
+        rocode_minute = conf['rocode_minute']
+        rocode_hour = conf['rocode_hour']
+        epoch = conf['epoch']
+        timezone = conf['timezone']
+        owner = conf['owner']
+        file.close()
 else:
     logger.error("Uh... no config file. Gonna explode now.")
 
@@ -32,10 +34,34 @@ bot.timezone_str = timezone
 bot.load_extension("rocode")
 
 
+def check_owner(ctx):
+    return bot.is_owner(ctx.author)
+
+
 @bot.event
 async def on_ready():
-    logger.info('Logged in as', bot.user.name, bot.user.id, '\n-----')
+    logger.info(f'Logged in as {bot.user.name} {bot.user.id} \n-----')
 
+
+@bot.command(hidden=True)
+@commands.check(check_owner)
+async def reload(ctx):
+    """Reloads the specified extension.
+    """
+    try:
+        bot.reload_extension('rocode')
+    except commands.ExtensionNotFound:
+        await ctx.send(':x: Ro-Code extension could not be found!', delete_after=10.0)
+        logger.warning('Ro-Code extension could not be found!')
+    except commands.ExtensionNotLoaded:
+        await ctx.send(':x: Ro-Code extension was not loaded!', delete_after=10.0)
+        logger.warning('Ro-Code extension was not loaded!')
+    except commands.ExtensionFailed:
+        await ctx.send(':x: Ro-Code extension failed during setup!', delete_after=10.0)
+        logger.warning('Ro-Code extension failed during setup')
+    else:
+        await ctx.send(':white_check_mark: Ro-Code extension reloaded successfully!', delete_after=10.0)
+        logger.info('Ro-Code extension reloaded')
 
 if __name__ == '__main__':
     bot.run(discord_token)

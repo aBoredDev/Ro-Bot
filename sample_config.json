@@ -4,5 +4,6 @@
  "rocode_hour": "0",
  "rocode_minute": "0",
   "epoch": "00 00 30 January 2021",
- "timezone": "Canada/Pacific"
- }
+ "timezone": "Canada/Pacific",
+ "owner": "123456789012345678"
+}

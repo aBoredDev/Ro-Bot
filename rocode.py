@@ -29,16 +29,25 @@ class Rocode(commands.Cog):
         shuffle(self.codes)
 
         self.rocodeChannel = {
-            "test": 590716993146191873,  # testing server / channel
+            "test": 752618760975941643,  # testing server / channel
             "prod": 837825838359511060  # production server / channel
         }
 
         self.bot = bot
 
-        scheduler = AsyncIOScheduler()
-        scheduler.add_job(self.perform_job, trigger='cron', minute=bot.rocode_minute, hour=bot.rocode_hour, day='*',
-                          week='*', month='*', year='*', misfire_grace_time=100, coalesce=False, timezone=self.tz)
-        scheduler.start()
+        self.scheduler = AsyncIOScheduler()
+        self.rocode_job = self.scheduler.add_job(self.perform_job, trigger='cron', minute=bot.rocode_minute,
+                                                 hour=bot.rocode_hour, day='*', week='*', month='*', year='*',
+                                                 misfire_grace_time=100, coalesce=False, timezone=self.tz)
+        self.scheduler.start()
+
+    def cog_unload(self):
+        """
+        Remove the rocode jobs and safely shutdown the scheduler
+        :return: Nothing
+        """
+        self.rocode_job.remove()
+        self.scheduler.shutdown()
 
     async def perform_job(self):
         logger.info("Performing Rocode Job at " + datetime.datetime.now(tz=self.tz).strftime("%d-%m-%Y--%H-%M"))
@@ -50,18 +59,21 @@ class Rocode(commands.Cog):
                     logger.info("Skipping server with no perms or non-existent channel ID")
                 else:
                     await self.bot.get_channel(channel).send(curr_code)
-            except discord.HTTPException:
-                logger.warning("Could not send ro'code, HTTP error")
             except discord.Forbidden:
                 logger.warning("Could not send ro'code, Forbidden error")
+            except discord.HTTPException:
+                logger.warning("Could not send ro'code, HTTP error")
 
     # Users can manually retrieve the current rocode using this command in discord
     @commands.command(pass_context=True)
     async def rocode(self, ctx):
         curr_code = self.codes[(datetime.datetime.now(tz=self.tz) - self.epoch).days % len(self.codes)]
-        logger.info((datetime.datetime.now(tz=self.tz) - self.epoch).days)
         await ctx.channel.send("Today's Rover Code is:\n\n" + curr_code)
 
 
 def setup(bot):
     bot.add_cog(Rocode(bot))
+
+
+def teardown(bot):
+    bot.remove_cog('Rocode')
