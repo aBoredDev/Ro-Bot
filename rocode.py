@@ -20,9 +20,9 @@ class Rocode(commands.Cog):
         self.tz = pytz.timezone(bot.timezone_str)  # https://www.youtube.com/watch?v=-5wpm-gesOY
         self.epoch = datetime.datetime.strptime(bot.epoch_str, "%M %H %d %B %Y")
         self.epoch = self.tz.localize(self.epoch)
-        logger.info(f"Rocode set to send messages at every {bot.rocode_hour}:{bot.rocode_minute}{self.tz}")
+        logger.info(f"Rocode set to send messages at {bot.rocode_hour}:{bot.rocode_minute} in {self.tz}")
 
-        codefile = open("codes.txt")
+        codefile = open("./codes/codes.txt")
         self.codes = codefile.readlines()
         random.seed(1)  # seed random so we shuffle to the same state on each startup
         shuffle(self.codes)
