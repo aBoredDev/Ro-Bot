@@ -14,15 +14,15 @@ logging.basicConfig(format=FORMAT)
 logger = logging.getLogger('RoCode')
 logger.setLevel(logging.INFO)
 
-class Rocode(commands.Cog):
 
+class Rocode(commands.Cog):
     def __init__(self, bot):
         self.tz = pytz.timezone(bot.timezone_str)  # https://www.youtube.com/watch?v=-5wpm-gesOY
-        self.epoch = datetime.datetime.strptime(bot.epoch_str, "%M %H %d %B %Y")
+        self.epoch = datetime.datetime.strptime(bot.epoch_str, '%M %H %d %B %Y')
         self.epoch = self.tz.localize(self.epoch)
-        logger.info(f"Rocode set to send messages at {bot.rocode_hour}:{bot.rocode_minute} in {self.tz}")
+        logger.info(f'Rocode set to send messages at {bot.rocode_hour}:{bot.rocode_minute} in {self.tz}')
 
-        codefile = open("./codes/codes.txt")
+        codefile = open('codes.txt')
         self.codes = codefile.readlines()
         random.seed(1)  # seed random so we shuffle to the same state on each startup
         shuffle(self.codes)
@@ -70,9 +70,9 @@ class Rocode(commands.Cog):
         await ctx.channel.send("Today's Rover Code is:\n\n" + curr_code)
 
 
-def setup(bot):
-    bot.add_cog(Rocode(bot))
+async def setup(bot):
+    await bot.add_cog(Rocode(bot))
 
 
-def teardown(bot):
-    bot.remove_cog('Rocode')
+async def teardown(bot):
+    await bot.remove_cog('Rocode')

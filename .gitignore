@@ -1,5 +1,6 @@
-# Don't include our config file lol
+# Don't include our config or events file lol
 config.json
+persistent/events.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
