@@ -70,3 +70,4 @@
 #70 A Ro is a Ro no matter where you go #RoCode
 #71 There are 2 ways to do something: the right way, and again. #RoCode
 #72 Be prepared for things to break #RoCode
+#73 Learn to read a map. #RoCode
