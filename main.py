@@ -13,7 +13,7 @@ logging.basicConfig(format=FORMAT)
 logger = logging.getLogger('Main')
 logger.setLevel(logging.INFO)
 
-configFile = "config.json"
+configFile = 'config.json'
 if os.path.isfile(configFile):
     with open(configFile) as file:
         conf = json.load(file)
@@ -26,7 +26,7 @@ if os.path.isfile(configFile):
         owner = conf['owner']
         file.close()
 else:
-    logger.error("Uh... no config file. Gonna explode now.")
+    logger.error('Uh... no config file. Gonna explode now.')
 
 if not exists('./persistent/events.json'):
     with open('./persistent/events.json', 'w') as f:
@@ -50,7 +50,7 @@ def check_owner(ctx):
 @bot.event
 async def on_ready():
     logger.info(f'Logged in as {bot.user.name} {bot.user.id} \n-----')
-    await bot.load_extension("rocode")
+    await bot.load_extension('rocode')
     await bot.load_extension('event_threads')
 
 if __name__ == '__main__':

@@ -28,8 +28,8 @@ class Rocode(commands.Cog):
         shuffle(self.codes)
 
         self.rocodeChannel = {
-            "test": 752618760975941643,  # testing server / channel
-            "prod": 837825838359511060  # production server / channel
+            'test': 752618760975941643,  # testing server / channel
+            'prod': 837825838359511060  # production server / channel
         }
 
         self.bot = bot
@@ -58,10 +58,10 @@ class Rocode(commands.Cog):
                     logger.info("Skipping server with no perms or non-existent channel ID")
                 else:
                     await self.bot.get_channel(channel).send(curr_code)
-            except discord.Forbidden:
-                logger.warning("Could not send ro'code, Forbidden error")
-            except discord.HTTPException:
-                logger.warning("Could not send ro'code, HTTP error")
+            except discord.Forbidden as err:
+                logger.warning("Could not send ro'code, Forbidden error", exc_info=err)
+            except discord.HTTPException as err:
+                logger.warning("Could not send ro'code, HTTP error", exc_info=err)
 
     # Users can manually retrieve the current rocode using this command in discord
     @commands.command(pass_context=True)
