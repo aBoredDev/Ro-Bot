@@ -25,6 +25,14 @@ class EventThreads(commands.Cog):
             self.events = json.load(f)
             f.close()
 
+        for guild in self.forum_channels.keys():
+            if guild not in self.events.keys():
+                self.events[guild] = {}
+
+        with open('persistent/events.json', 'w') as f:
+            json.dump(self.events, f)
+            f.close()
+
     @commands.Cog.listener()
     async def on_scheduled_event_create(self, event):
         if str(event.guild.id) not in self.forum_channels.keys():
