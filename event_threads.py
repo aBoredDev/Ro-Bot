@@ -36,7 +36,8 @@ class EventThreads(commands.Cog):
     @commands.Cog.listener()
     async def on_scheduled_event_create(self, event):
         if str(event.guild.id) not in self.forum_channels.keys():
-            return 0
+            return
+
         try:
             ch = self.bot.get_channel(self.forum_channels[str(event.guild.id)])
             if ch is None:
@@ -84,26 +85,34 @@ class EventThreads(commands.Cog):
     @commands.Cog.listener()
     async def on_scheduled_event_delete(self, event):
         if str(event.guild.id) not in self.forum_channels.keys():
-            return 0
-        if str(event.id) not in self.events[str(event.guild.id)]:
-            return 0
+            return
+        if str(event.id) not in self.events[str(event.guild.id)].keys():
+            return
+
         try:
             ch = self.bot.get_channel(self.forum_channels[str(event.guild.id)])
             if ch is None:
-                logger.warning('Specifed forum channel does not exist')
-            else:
-                thread = await self.bot.fetch_channel(self.events[str(event.guild.id)][str(event.id)])
-                time = int(datetime.datetime.now(tz=pytz.timezone('UTC')).timestamp() // 1)
-                if event.status == discord.EventStatus.scheduled:
-                    # Because of discord's backend implementation of event cancellation, the status doesn't actually
-                    # change to cancelled when the event is cancelled, it remains as scheduled
-                    # See https://github.com/discord/discord-api-docs/issues/4105
-                    await thread.send(f'**===== EVENT CANCELLED <t:{time}:F> =====**')
-                    self.events[str(event.guild.id)].pop(str(event.id))
-                    with open('persistent/events.json', 'w') as f:
-                        json.dump(self.events, f)
-                        f.close()
-                logger.info(f'Updated forum channel post {thread.id} for deleted event {event.id} [{event.name}]')
+                logger.warning(f'Specifed forum channel {self.forum_channels[str(event.guild.id)]} for guild '
+                               f'{event.guild.id} does not exist')
+                return
+
+            thread = await self.bot.fetch_channel(self.events[str(event.guild.id)][str(event.id)])
+            if thread is None:
+                logger.warning(f'Specified thread "{self.events[str(event.guild.id)][str(event.id)]}" for event'
+                               f'"{event.id}" does not exist')
+                return
+            
+            time = int(datetime.datetime.now(tz=pytz.timezone('UTC')).timestamp() // 1)
+            if event.status == discord.EventStatus.scheduled:
+                # Because of discord's backend implementation of event cancellation, the status doesn't actually
+                # change to cancelled when the event is cancelled, it remains as scheduled
+                # See https://github.com/discord/discord-api-docs/issues/4105
+                await thread.send(f'**===== EVENT CANCELLED <t:{time}:F> =====**')
+                self.events[str(event.guild.id)].pop(str(event.id))
+                with open('persistent/events.json', 'w') as f:
+                    json.dump(self.events, f)
+                    f.close()
+            logger.info(f'Updated forum channel post {thread.id} for deleted event {event.id} [{event.name}]')
         except discord.Forbidden as err:
             logger.warning('Could not create post, Forbidden error', exc_info=err)
         except discord.HTTPException as err:
@@ -111,64 +120,74 @@ class EventThreads(commands.Cog):
 
     @commands.Cog.listener()
     async def on_scheduled_event_update(self, before, after):
+        if str(before.guild.id) not in self.forum_channels.keys():
+            return
         if str(before.id) not in self.events[str(before.guild.id)].keys():
-            return 0
+            return
+
         try:
             ch = self.bot.get_channel(self.forum_channels[str(before.guild.id)])
             if ch is None:
-                logger.warning('Specifed forum channel does not exist')
-            else:
-                thread = await self.bot.fetch_channel(self.events[str(before.guild.id)][str(before.id)])
-                if before.start_time != after.start_time \
-                        or before.end_time != after.end_time \
-                        or before.location != after.location \
-                        or before.description != after.description \
-                        or before.entity_type != after.entity_type \
-                        or before.channel != after.channel:
-                    if after.end_time:
-                        when_string = f'**WHEN:** <t:{int(after.start_time.timestamp() // 1)}:F> to <t:{int(after.end_time.timestamp() // 1)}:F>\n'
-                    else:
-                        when_string = f'**WHEN:** <t:{int(after.start_time.timestamp() // 1)}:F>\n'
+                logger.warning(f'Specifed forum channel {self.forum_channels[str(before.guild.id)]} for guild '
+                               f'{before.guild.id} does not exist')
+                return
+            
+            thread = await self.bot.fetch_channel(self.events[str(before.guild.id)][str(before.id)])
+            if thread is None:
+                logger.warning(f'Specified thread "{self.events[str(before.guild.id)][str(before.id)]}" for event'
+                               f'"{before.id}" does not exist')
+                return
 
-                    if after.location == discord.EntityType.external:
-                        where_string = f'**WHERE:** {after.location}\n'
-                    else:
-                        where_string = f'**WHERE:** {after.channel.mention}\n'
+            if before.start_time != after.start_time \
+                    or before.end_time != after.end_time \
+                    or before.location != after.location \
+                    or before.description != after.description \
+                    or before.entity_type != after.entity_type \
+                    or before.channel != after.channel:
+                if after.end_time:
+                    when_string = f'**WHEN:** <t:{int(after.start_time.timestamp() // 1)}:F> to <t:{int(after.end_time.timestamp() // 1)}:F>\n'
+                else:
+                    when_string = f'**WHEN:** <t:{int(after.start_time.timestamp() // 1)}:F>\n'
 
-                    if after.description:
-                        description = f'{after.description}\n'
-                    else:
-                        description = 'No description given.\n'
+                if after.location == discord.EntityType.external:
+                    where_string = f'**WHERE:** {after.location}\n'
+                else:
+                    where_string = f'**WHERE:** {after.channel.mention}\n'
 
-                    new_message = (
-                        f'{when_string}'
-                        f'{where_string}'
-                        f'*Event created by: <@{after.creator_id}>*\n\n'
-                        f'{description}\n'
-                        f'{after.url}'
-                    )
+                if after.description:
+                    description = f'{after.description}\n'
+                else:
+                    description = 'No description given.\n'
 
-                    starter_message = thread.get_partial_message(thread.id)
-                    await starter_message.edit(content=new_message)
+                new_message = (
+                    f'{when_string}'
+                    f'{where_string}'
+                    f'*Event created by: <@{after.creator_id}>*\n\n'
+                    f'{description}\n'
+                    f'{after.url}'
+                )
 
-                if before.name != after.name:
-                    await thread.edit(
-                        name=after.name,
-                        reason='Associated event updated'
-                    )
+                starter_message = thread.get_partial_message(thread.id)
+                await starter_message.edit(content=new_message)
 
-                if before.status != after.status:
-                    time = int(datetime.datetime.now(tz=pytz.timezone('UTC')).timestamp() // 1)
-                    if after.status == discord.EventStatus.active:
-                        await thread.send(f'**===== EVENT STARTED <t:{time}:F> =====**')
-                    if after.status == discord.EventStatus.completed:
-                        await thread.send(f'**===== EVENT ENDED <t:{time}:F> =====**')
-                        self.events[str(after.guild.id)].pop(str(after.id))
-                        with open('persistent/events.json', 'w') as f:
-                            json.dump(self.events, f)
-                            f.close()
+            if before.name != after.name:
+                await thread.edit(
+                    name=after.name,
+                    reason='Associated event updated'
+                )
 
-                logger.info(f'Updated forum channel post {thread.id} for scheduled event {after.id} [{after.name}]')
+            if before.status != after.status:
+                time = int(datetime.datetime.now(tz=pytz.timezone('UTC')).timestamp() // 1)
+                if after.status == discord.EventStatus.active:
+                    await thread.send(f'**===== EVENT STARTED <t:{time}:F> =====**')
+                if after.status == discord.EventStatus.completed:
+                    await thread.send(f'**===== EVENT ENDED <t:{time}:F> =====**')
+                    self.events[str(after.guild.id)].pop(str(after.id))
+                    with open('persistent/events.json', 'w') as f:
+                        json.dump(self.events, f)
+                        f.close()
+
+            logger.info(f'Updated forum channel post {thread.id} for scheduled event {after.id} [{after.name}]')
         except discord.Forbidden as err:
             logger.warning('Could not create post, Forbidden error', exc_info=err)
         except discord.HTTPException as err:

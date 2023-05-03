@@ -49,15 +49,15 @@ class Rocode(commands.Cog):
         self.scheduler.shutdown()
 
     async def perform_job(self):
-        logger.info("Performing Rocode Job at " + datetime.datetime.now(tz=self.tz).strftime("%d-%m-%Y--%H-%M"))
+        logger.info('Performing Rocode Job at ' + datetime.datetime.now(tz=self.tz).strftime('%d-%m-%Y--%H-%M'))
         curr_code = self.codes[(datetime.datetime.now(tz=self.tz) - self.epoch).days % len(self.codes)]
         for server, channel in self.rocodeChannel.items():
             try:
                 ch = self.bot.get_channel(channel)
                 if ch is None:
-                    logger.info("Skipping server with no perms or non-existent channel ID")
-                else:
-                    await self.bot.get_channel(channel).send(curr_code)
+                    logger.info('Skipping server with no perms or non-existent channel ID')
+                    continue
+                await self.bot.get_channel(channel).send(curr_code)
             except discord.Forbidden as err:
                 logger.warning("Could not send ro'code, Forbidden error", exc_info=err)
             except discord.HTTPException as err:
