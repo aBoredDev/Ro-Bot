@@ -16,14 +16,14 @@ logger.setLevel(logging.INFO)
 configFile = 'config.json'
 if os.path.isfile(configFile):
     with open(configFile) as file:
-        conf = json.load(file)
-        discord_token = conf['discord_bot_token']
-        description = conf['description']
-        rocode_minute = conf['rocode_minute']
-        rocode_hour = conf['rocode_hour']
-        epoch = conf['epoch']
-        timezone = conf['timezone']
-        owner = conf['owner']
+        conf: dict[str, str | int] = json.load(file)
+        discord_token: str = conf['discord_bot_token']
+        description: str = conf['description']
+        rocode_minute: int = conf['rocode_minute']
+        rocode_hour: int = conf['rocode_hour']
+        epoch: str = conf['epoch']
+        timezone: str = conf['timezone']
+        owner: int = conf['owner']
         file.close()
 else:
     logger.error('Uh... no config file. Gonna explode now.')
@@ -36,19 +36,20 @@ if not exists('./persistent/events.json'):
 intents = discord.Intents.default()
 intents.message_content = True
 
-bot = commands.Bot(command_prefix='!', description=description, intents=intents)
+bot = commands.Bot(command_prefix='!', description=description, intents=intents,
+                   owner_id=owner)
 bot.rocode_minute = rocode_minute
 bot.rocode_hour = rocode_hour
 bot.epoch_str = epoch
 bot.timezone_str = timezone
 
 
-def check_owner(ctx):
-    return bot.is_owner(ctx.author)
+async def check_owner(ctx: commands.Context) -> bool:
+    return await bot.is_owner(ctx.author)
 
 
 @bot.event
-async def on_ready():
+async def on_ready() -> None:
     logger.info(f'Logged in as {bot.user.name} {bot.user.id} \n-----')
     await bot.load_extension('rocode')
     await bot.load_extension('event_threads')

@@ -1,12 +1,14 @@
 import datetime
 import pytz
 import random
-import discord
+# noinspection PyPackageRequirements
+import discord  # 'discord' module comes from 'discord.py' package
 import logging
 
 from random import shuffle
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from discord.ext import commands
+# noinspection PyPackageRequirements
+from discord.ext import commands  # 'discord' module comes from 'discord.py' package
 
 FORMAT = ('%(asctime)-15s %(threadName)-15s '
           '%(levelname)-8s %(module)-15s:%(lineno)-8s %(message)s')
@@ -16,7 +18,7 @@ logger.setLevel(logging.INFO)
 
 
 class Rocode(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot) -> None:
         self.tz = pytz.timezone(bot.timezone_str)  # https://www.youtube.com/watch?v=-5wpm-gesOY
         self.epoch = datetime.datetime.strptime(bot.epoch_str, '%M %H %d %B %Y')
         self.epoch = self.tz.localize(self.epoch)
@@ -35,12 +37,13 @@ class Rocode(commands.Cog):
         self.bot = bot
 
         self.scheduler = AsyncIOScheduler()
-        self.rocode_job = self.scheduler.add_job(self.perform_job, trigger='cron', minute=bot.rocode_minute,
-                                                 hour=bot.rocode_hour, day='*', week='*', month='*', year='*',
-                                                 misfire_grace_time=100, coalesce=False, timezone=self.tz)
+        self.rocode_job = self.scheduler.add_job(
+            self.perform_job, trigger='cron', minute=bot.rocode_minute,
+            hour=bot.rocode_hour, day='*', week='*', month='*', year='*',
+            misfire_grace_time=100, coalesce=False, timezone=self.tz)
         self.scheduler.start()
 
-    def cog_unload(self):
+    def cog_unload(self) -> None:
         """
         Remove the rocode jobs and safely shutdown the scheduler
         :return: Nothing
@@ -48,7 +51,7 @@ class Rocode(commands.Cog):
         self.rocode_job.remove()
         self.scheduler.shutdown()
 
-    async def perform_job(self):
+    async def perform_job(self) -> None:
         logger.info('Performing Rocode Job at ' + datetime.datetime.now(tz=self.tz).strftime('%d-%m-%Y--%H-%M'))
         curr_code = self.codes[(datetime.datetime.now(tz=self.tz) - self.epoch).days % len(self.codes)]
         for server, channel in self.rocodeChannel.items():
@@ -65,14 +68,14 @@ class Rocode(commands.Cog):
 
     # Users can manually retrieve the current rocode using this command in discord
     @commands.command(pass_context=True)
-    async def rocode(self, ctx):
+    async def rocode(self, ctx: commands.Context) -> None:
         curr_code = self.codes[(datetime.datetime.now(tz=self.tz) - self.epoch).days % len(self.codes)]
         await ctx.channel.send("Today's Rover Code is:\n\n" + curr_code)
 
 
-async def setup(bot):
+async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(Rocode(bot))
 
 
-async def teardown(bot):
+async def teardown(bot: commands.Bot) -> None:
     await bot.remove_cog('Rocode')
