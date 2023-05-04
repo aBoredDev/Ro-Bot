@@ -201,6 +201,81 @@ class EventThreads(commands.Cog):
         except discord.HTTPException as err:
             logger.warning('Could not create post, HTTP error', exc_info=err)
 
+    # If we use the regular scheduled event handlers, the event doesn't fire if the user is not cached.
+    @commands.Cog.listener()
+    async def on_raw_scheduled_event_user_add(self,
+                                              payload: discord.RawScheduledEventSubscription) -> None:
+        logger.info('event firing')
+        if str(payload.guild.id) not in self.forum_channels.keys():
+            logger.info('guild error')
+            return
+        if str(payload.event_id) not in self.events[str(payload.guild.id)].keys():
+            logger.info('event error')
+            return
+
+        try:
+            ch = self.bot.get_channel(self.forum_channels[str(payload.guild.id)])
+            if ch is None:
+                logger.warning(f'Specifed forum channel {self.forum_channels[str(payload.guild.id)]} for guild '
+                               f'{payload.guild.id} does not exist')
+                return
+            thread = await self.bot.fetch_channel(self.events[str(payload.guild.id)][str(payload.event_id)])
+            if thread is None:
+                logger.warning(
+                    f'Specified thread {self.events[str(payload.guild.id)][str(payload.event_id)]} for payload'
+                    f'{payload.event_id} does not exist')
+                return
+
+            user = await thread.guild.fetch_member(payload.user_id)
+            event = await thread.guild.fetch_scheduled_event(payload.event_id)
+            await thread.add_user(user)
+            logger.info(f'Added user {user.id} [{user.name}#{user.discriminator}]'
+                        f'to thread {thread.id} for event {event.id} [{event.name}]')
+        except discord.NotFound as err:
+            logger.warning(f'Specified thread {self.events[str(payload.guild.id)][str(payload.event_id)]} for event'
+                           f'{payload.event_id} does not exist', exc_info=err)
+        except discord.Forbidden as err:
+            logger.warning('Could not add user to thread, Forbidden error', exc_info=err)
+        except discord.HTTPException as err:
+            logger.warning('Could not add user to thread, HTTP error', exc_info=err)
+
+    @commands.Cog.listener()
+    async def on_raw_scheduled_event_user_remove(self,
+                                                 payload: discord.RawScheduledEventSubscription) -> None:
+        logger.info('event firing')
+        if str(payload.guild.id) not in self.forum_channels.keys():
+            logger.info('guild error')
+            return
+        if str(payload.event_id) not in self.events[str(payload.guild.id)].keys():
+            logger.info('event error')
+            return
+
+        try:
+            ch = self.bot.get_channel(self.forum_channels[str(payload.guild.id)])
+            if ch is None:
+                logger.warning(f'Specifed forum channel {self.forum_channels[str(payload.guild.id)]} for guild '
+                               f'{payload.guild.id} does not exist')
+                return
+            thread = await self.bot.fetch_channel(self.events[str(payload.guild.id)][str(payload.event_id)])
+            if thread is None:
+                logger.warning(
+                    f'Specified thread {self.events[str(payload.guild.id)][str(payload.event_id)]} for payload'
+                    f'{payload.event_id} does not exist')
+                return
+
+            user = await thread.guild.fetch_member(payload.user_id)
+            event = await thread.guild.fetch_scheduled_event(payload.event_id)
+            await thread.remove_user(user)
+            logger.info(f'Removed user {user.id} [{user.name}#{user.discriminator}]'
+                        f'from thread {thread.id} for event {event.id} [{event.name}]')
+        except discord.NotFound as err:
+            logger.warning(f'Specified thread {self.events[str(payload.guild.id)][str(payload.event_id)]} for event'
+                           f'{payload.event_id} does not exist', exc_info=err)
+        except discord.Forbidden as err:
+            logger.warning(f'Could not add user to thread, Forbidden error', exc_info=err)
+        except discord.HTTPException as err:
+            logger.warning(f'Could not add user to thread, HTTP error', exc_info=err)
+
 
 def setup(bot: commands.Bot):
     bot.add_cog(EventThreads(bot))
