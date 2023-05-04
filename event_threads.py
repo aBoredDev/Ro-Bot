@@ -1,7 +1,7 @@
 # noinspection PyPackageRequirements
-from discord.ext import commands  # 'discord' module comes from 'discord.py' package
+from discord.ext import commands  # 'discord' module comes from 'py-cord' package
 # noinspection PyPackageRequirements
-import discord  # 'discord' module comes from 'discord.py' package
+import discord  # 'discord' module comes from 'py-cord' package
 import logging
 import json
 import datetime
@@ -11,7 +11,7 @@ import pytz
 FORMAT = ('%(asctime)-15s %(threadName)-15s '
           '%(levelname)-8s %(module)-15s:%(lineno)-8s %(message)s')
 logging.basicConfig(format=FORMAT)
-logger = logging.getLogger('EventThreads')
+logger = logging.getLogger('discord')
 logger.setLevel(logging.INFO)
 
 
@@ -52,10 +52,10 @@ class EventThreads(commands.Cog):
                 else:
                     when_string = f'**WHEN:** <t:{int(event.start_time.timestamp() // 1)}:F>\n'
 
-                if event.entity_type == discord.EntityType.external:
-                    where_string = f'**WHERE:** {event.location}\n'
+                if event.location.type == discord.ScheduledEventLocationType.external:
+                    where_string = f'**WHERE:** {event.location.value}\n'
                 else:
-                    where_string = f'**WHERE:** {event.channel.mention}\n'
+                    where_string = f'**WHERE:** {event.location.value.mention}\n'
 
                 if event.description:
                     description = f'{event.description}\n'
@@ -70,7 +70,7 @@ class EventThreads(commands.Cog):
                     f'{event.url}'
                 )
 
-                thread, _ = await ch.create_thread(
+                thread = await ch.create_thread(
                     name=event.name,
                     content=starter_message,
                     reason='Automatically created when a scheduled event was created'
@@ -108,7 +108,7 @@ class EventThreads(commands.Cog):
                 return
             
             time = int(datetime.datetime.now(tz=pytz.timezone('UTC')).timestamp() // 1)
-            if event.status == discord.EventStatus.scheduled:
+            if event.status == discord.ScheduledEventStatus.canceled:
                 # Because of discord's backend implementation of event cancellation, the status doesn't actually change
                 # to cancelled when the event is cancelled, it remains as scheduled
                 # See https://github.com/discord/discord-api-docs/issues/4105
@@ -148,19 +148,17 @@ class EventThreads(commands.Cog):
             if before.start_time != after.start_time \
                     or before.end_time != after.end_time \
                     or before.location != after.location \
-                    or before.description != after.description \
-                    or before.entity_type != after.entity_type \
-                    or before.channel != after.channel:
+                    or before.description != after.description:
                 if after.end_time:
                     when_string = f'**WHEN:** <t:{int(after.start_time.timestamp() // 1)}:F> to ' \
                                   f'<t:{int(after.end_time.timestamp() // 1)}:F>\n'
                 else:
                     when_string = f'**WHEN:** <t:{int(after.start_time.timestamp() // 1)}:F>\n'
 
-                if after.location == discord.EntityType.external:
-                    where_string = f'**WHERE:** {after.location}\n'
+                if after.location.type == discord.ScheduledEventLocationType.external:
+                    where_string = f'**WHERE:** {after.location.value}\n'
                 else:
-                    where_string = f'**WHERE:** {after.channel.mention}\n'
+                    where_string = f'**WHERE:** {after.location.value.mention}\n'
 
                 if after.description:
                     description = f'{after.description}\n'
@@ -187,9 +185,9 @@ class EventThreads(commands.Cog):
             if before.status != after.status:
                 time = int(datetime.datetime.now(
                     tz=pytz.timezone('UTC')).timestamp() // 1)
-                if after.status == discord.EventStatus.active:
+                if after.status == discord.ScheduledEventStatus.active:
                     await thread.send(f'**===== EVENT STARTED <t:{time}:F> =====**')
-                if after.status == discord.EventStatus.completed:
+                if after.status == discord.ScheduledEventStatus.completed:
                     await thread.send(f'**===== EVENT ENDED <t:{time}:F> =====**')
                     self.events[str(after.guild.id)].pop(str(after.id))
                     with open('persistent/events.json', 'w') as f:
@@ -204,9 +202,9 @@ class EventThreads(commands.Cog):
             logger.warning('Could not create post, HTTP error', exc_info=err)
 
 
-async def setup(bot: commands.Bot):
-    await bot.add_cog(EventThreads(bot))
+def setup(bot: commands.Bot):
+    bot.add_cog(EventThreads(bot))
 
 
-async def teardown(bot: commands.Bot):
-    await bot.remove_cog('EventThreads')
+def teardown(bot: commands.Bot):
+    bot.remove_cog('EventThreads')
