@@ -2,18 +2,17 @@ import datetime
 import pytz
 import random
 # noinspection PyPackageRequirements
-import discord  # 'discord' module comes from 'discord.py' package
+import discord  # 'discord' module comes from 'py-cord' package
+# noinspection PyPackageRequirements
+from discord.ext import commands  # 'discord' module comes from 'py-cord' package
 import logging
-
 from random import shuffle
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-# noinspection PyPackageRequirements
-from discord.ext import commands  # 'discord' module comes from 'discord.py' package
 
 FORMAT = ('%(asctime)-15s %(threadName)-15s '
           '%(levelname)-8s %(module)-15s:%(lineno)-8s %(message)s')
 logging.basicConfig(format=FORMAT)
-logger = logging.getLogger('RoCode')
+logger = logging.getLogger('discord')
 logger.setLevel(logging.INFO)
 
 
@@ -67,15 +66,15 @@ class Rocode(commands.Cog):
                 logger.warning("Could not send ro'code, HTTP error", exc_info=err)
 
     # Users can manually retrieve the current rocode using this command in discord
-    @commands.command(pass_context=True)
+    @commands.slash_command(name='rocode', description='Get today\'s rocode')
     async def rocode(self, ctx: commands.Context) -> None:
         curr_code = self.codes[(datetime.datetime.now(tz=self.tz) - self.epoch).days % len(self.codes)]
-        await ctx.channel.send("Today's Rover Code is:\n\n" + curr_code)
+        await ctx.response.send_message("Today's Rover Code is:\n\n" + curr_code)
 
 
-async def setup(bot: commands.Bot) -> None:
-    await bot.add_cog(Rocode(bot))
+def setup(bot: commands.Bot) -> None:
+    bot.add_cog(Rocode(bot))
 
 
-async def teardown(bot: commands.Bot) -> None:
-    await bot.remove_cog('Rocode')
+def teardown(bot: commands.Bot) -> None:
+    bot.remove_cog('Rocode')

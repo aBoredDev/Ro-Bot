@@ -1,7 +1,9 @@
 import os
 import json
-from discord.ext import commands
-import discord
+# noinspection PyPackageRequirements
+from discord.ext import commands  # 'discord' module comes from 'py-cord' package
+# noinspection PyPackageRequirements
+import discord  # 'discord' module comes from 'py-cord' package
 import logging
 from os.path import exists
 
@@ -10,7 +12,7 @@ from os.path import exists
 FORMAT = ('%(asctime)-15s %(threadName)-15s '
           '%(levelname)-8s %(module)-15s:%(lineno)-8s %(message)s')
 logging.basicConfig(format=FORMAT)
-logger = logging.getLogger('Main')
+logger = logging.getLogger('discord')
 logger.setLevel(logging.INFO)
 
 configFile = 'config.json'
@@ -33,8 +35,7 @@ if not exists('./persistent/events.json'):
         json.dump({}, f)
         f.close()
 
-intents = discord.Intents.default()
-intents.message_content = True
+intents = discord.Intents.default() | discord.Intents.message_content
 
 bot = commands.Bot(command_prefix='!', description=description, intents=intents,
                    owner_id=owner)
@@ -42,6 +43,9 @@ bot.rocode_minute = rocode_minute
 bot.rocode_hour = rocode_hour
 bot.epoch_str = epoch
 bot.timezone_str = timezone
+
+bot.load_extension('rocode')
+bot.load_extension('event_threads')
 
 
 async def check_owner(ctx: commands.Context) -> bool:
@@ -51,8 +55,6 @@ async def check_owner(ctx: commands.Context) -> bool:
 @bot.event
 async def on_ready() -> None:
     logger.info(f'Logged in as {bot.user.name} {bot.user.id} \n-----')
-    await bot.load_extension('rocode')
-    await bot.load_extension('event_threads')
 
 if __name__ == '__main__':
     bot.run(discord_token)
